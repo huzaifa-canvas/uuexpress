@@ -6,10 +6,16 @@
 <title>@yield('title', 'United Universe Express LLC')</title>
 <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}?v={{ @filemtime(public_path('assets/css/style.css')) }}">
 <style>
-    .booking-pay { margin:16px 0 4px; }
-    .booking-pay__price { font-weight:700; font-size:1.1rem; margin-bottom:10px; }
-    .booking-pay__label { display:block; font-size:.78rem; font-weight:600; letter-spacing:.02em; margin-bottom:6px; opacity:.85; }
-    .booking-pay__card { background:#fff; border:1px solid rgba(0,0,0,.2); border-radius:10px; padding:13px 14px; }
+    /* Keep the booking popup compact so it fits without scrolling */
+    .booking-modal__panel { max-height: 94vh; padding: 1.6rem 1.75rem; }
+    .booking-modal__panel form { gap: 0.7rem; }
+    .booking-modal__panel textarea { min-height: 4rem; }
+    .booking-modal__eyebrow { margin-bottom: 0.25rem; }
+    .booking-modal__title { margin-bottom: 0.6rem; }
+    .booking-pay { margin:6px 0 2px; }
+    .booking-pay__price { font-weight:700; font-size:1.05rem; margin-bottom:7px; }
+    .booking-pay__label { display:block; font-size:.76rem; font-weight:600; letter-spacing:.02em; margin-bottom:5px; opacity:.85; }
+    .booking-pay__card { background:#fff; border:1px solid rgba(0,0,0,.2); border-radius:10px; padding:11px 13px; }
     .booking-pay__card.StripeElement--focus { border-color:#157347; box-shadow:0 0 0 3px rgba(21,115,71,.12); }
     .booking-pay__card.StripeElement--invalid { border-color:#dc3545; }
 </style>
