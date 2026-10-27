@@ -23,5 +23,6 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# Legacy plain-PHP site — reference only
+# Legacy plain-PHP site — reference only (now under public/old)
 /old/
+/public/old/
