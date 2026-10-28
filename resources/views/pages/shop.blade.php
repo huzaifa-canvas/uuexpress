@@ -33,7 +33,10 @@
                         ${{ number_format((float) $p->price, 2) }}
                         <small>{{ $p->unit }}</small>
                     </span>
-                    <a href="{{ route('cart') }}" class="btn product-card__btn">Add To Cart</a>
+                    <form method="POST" action="{{ route('cart.add', $p) }}" style="margin:0;">
+                        @csrf
+                        <button type="submit" class="btn product-card__btn">Add To Cart</button>
+                    </form>
                 </div>
             </article>
             @endforeach

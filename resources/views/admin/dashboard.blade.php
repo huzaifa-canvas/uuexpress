@@ -5,10 +5,10 @@
 <div class="row g-3 mb-4">
     @php
         $tiles = [
-            ['label' => 'Total Bookings', 'value' => $stats['bookings'], 'sub' => $stats['new_bookings'].' new', 'icon' => 'bi-calendar-check', 'bg' => '#e6f4ea', 'fg' => '#0f5132', 'route' => route('admin.bookings.index')],
-            ['label' => 'Contact Us', 'value' => $stats['messages'], 'sub' => $stats['unread_messages'].' unread', 'icon' => 'bi-chat-left-text', 'bg' => '#e7f0fb', 'fg' => '#1b4f9b', 'route' => route('admin.messages.index')],
-            ['label' => 'Services', 'value' => $stats['services'], 'sub' => 'manage', 'icon' => 'bi-grid-1x2', 'bg' => '#fdf0e6', 'fg' => '#9a5b2a', 'route' => route('admin.services.index')],
-            ['label' => 'Products', 'value' => $stats['products'], 'sub' => 'catalog', 'icon' => 'bi-bag', 'bg' => '#f3e9fb', 'fg' => '#6b2a9a', 'route' => '#'],
+            ['label' => 'Orders', 'value' => $stats['orders'], 'sub' => 'total', 'icon' => 'bi-receipt', 'bg' => '#e6f4ea', 'fg' => '#0f5132', 'route' => route('admin.orders.index')],
+            ['label' => 'Revenue', 'value' => '$'.number_format($stats['revenue'], 2), 'sub' => 'paid', 'icon' => 'bi-cash-stack', 'bg' => '#e7f0fb', 'fg' => '#1b4f9b', 'route' => route('admin.orders.index')],
+            ['label' => 'Bookings', 'value' => $stats['bookings'], 'sub' => $stats['new_bookings'].' new', 'icon' => 'bi-calendar-check', 'bg' => '#fdf0e6', 'fg' => '#9a5b2a', 'route' => route('admin.bookings.index')],
+            ['label' => 'Contact Us', 'value' => $stats['messages'], 'sub' => $stats['unread_messages'].' unread', 'icon' => 'bi-chat-left-text', 'bg' => '#f3e9fb', 'fg' => '#6b2a9a', 'route' => route('admin.messages.index')],
         ];
     @endphp
     @foreach($tiles as $t)
@@ -26,6 +26,31 @@
         </a>
     </div>
     @endforeach
+</div>
+
+<div class="card p-3 mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 class="h6 mb-0 fw-bold">Recent Orders</h2>
+        <a href="{{ route('admin.orders.index') }}" class="small">View all</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead class="text-muted small"><tr><th>Order</th><th>Customer</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead>
+            <tbody>
+            @forelse($recentOrders as $o)
+                <tr>
+                    <td><a href="{{ route('admin.orders.show', $o) }}" class="text-decoration-none fw-semibold">{{ $o->order_number }}</a></td>
+                    <td class="small">{{ $o->customer_name }}</td>
+                    <td class="small fw-semibold">${{ number_format($o->total, 2) }}</td>
+                    <td>@if($o->payment_status==='paid')<span class="badge bg-success">Paid</span>@else<span class="badge bg-secondary">Unpaid</span>@endif</td>
+                    <td><span class="badge bg-light text-dark border">{{ ucfirst($o->status) }}</span></td>
+                </tr>
+            @empty
+                <tr><td colspan="5" class="text-muted text-center py-3">No orders yet.</td></tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div class="row g-3">

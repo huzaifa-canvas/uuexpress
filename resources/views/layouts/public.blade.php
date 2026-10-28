@@ -40,7 +40,7 @@
                 <path d="M4 8h16l-1.2 12H5.2L4 8z"/>
                 <path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>
             </svg>
-            <span class="badge">3</span>
+            @if(($cartCount ?? 0) > 0)<span class="badge">{{ $cartCount }}</span>@endif
         </a>
         <a href="{{ route('contact') }}" class="btn header-quote">Get A Free Quote</a>
         <button class="menu-toggle" id="menuToggle" type="button"
