@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>@yield('title', 'United Universe Express LLC')</title>
 <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}?v={{ @filemtime(public_path('assets/css/style.css')) }}">
+<link rel="stylesheet" href="{{ asset('assets/css/uu-ui.css') }}?v={{ @filemtime(public_path('assets/css/uu-ui.css')) }}">
+<script src="{{ asset('assets/js/uu-ui.js') }}?v={{ @filemtime(public_path('assets/js/uu-ui.js')) }}"></script>
 <style>
     /* Keep the booking popup compact so it fits without scrolling */
     .booking-modal__panel { max-height: 94vh; padding: 1.6rem 1.75rem; }
@@ -259,6 +261,7 @@
 
     function fail(message) {
         msgBox.innerHTML = '<div class="form-msg error">' + (message || 'Something went wrong.') + '</div>';
+        if (window.UUUI) { UUUI.reset(submitBtn); }
         submitBtn.disabled = false;
         submitBtn.textContent = defaultLabel();
     }
@@ -272,7 +275,7 @@
         })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-            if (data.status === 'success') { window.location.href = window.UU_THANKYOU_URL; return; }
+            if (data.status === 'success') { if (window.UUUI) { UUUI.navStart(); } window.location.href = window.UU_THANKYOU_URL; return; }
             fail(data.message);
         })
         .catch(function () { fail('Something went wrong. Please try again.'); });
@@ -280,8 +283,9 @@
 
     form.addEventListener('submit', function (e) {
         e.preventDefault();
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Processing…';
+        if (submitBtn.disabled) return;              // guard against double-submit
+        if (window.UUUI) { UUUI.setBusy(submitBtn, 'Processing…'); }
+        else { submitBtn.disabled = true; submitBtn.textContent = 'Processing…'; }
 
         if (!(currentPrice > 0 && stripe)) { submitBooking(); return; }
 

@@ -1,0 +1,75 @@
+/* ==========================================================================
+   UU Express — global loading / busy-state styles
+   Spinner for buttons + a thin top progress bar for page navigation.
+   ========================================================================== */
+
+/* Button spinner (inherits the button's text color) */
+.uu-spin {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    vertical-align: -0.15em;
+    animation: uu-spin 0.6s linear infinite;
+}
+.uu-spin-text { margin-left: 0.5em; }
+
+button.is-loading,
+.btn.is-loading,
+input.is-loading {
+    cursor: progress;
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+button:disabled,
+.btn:disabled,
+input:disabled,
+a.btn.disabled {
+    cursor: not-allowed;
+}
+
+@keyframes uu-spin { to { transform: rotate(360deg); } }
+
+/* Thin top progress bar shown while a page/form request is in flight */
+.uu-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0;
+    background: #157347;
+    box-shadow: 0 0 10px rgba(21, 115, 71, 0.7), 0 0 4px rgba(21, 115, 71, 0.5);
+    z-index: 99999;
+    opacity: 0;
+    pointer-events: none;
+    transition: width 0.2s ease, opacity 0.35s ease;
+}
+.uu-topbar--active { opacity: 1; }
+.uu-topbar--done { opacity: 0; }
+
+/* Optional full-screen blocking overlay (available via UUUI if ever needed) */
+.uu-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.4);
+    z-index: 99998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.uu-overlay__spin {
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 3px solid rgba(0, 0, 0, 0.15);
+    border-top-color: #157347;
+    border-radius: 50%;
+    animation: uu-spin 0.7s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .uu-spin, .uu-overlay__spin { animation-duration: 1.2s; }
+    .uu-topbar { transition: opacity 0.35s ease; }
+}

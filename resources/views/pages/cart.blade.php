@@ -104,10 +104,13 @@
     document.querySelectorAll('.cart-remove').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
             e.preventDefault();
+            if (btn.getAttribute('data-uu-busy') === '1') return;   // already removing
             var row = btn.closest('.cart-row');
             var id = row.querySelector('input[name^="quantities"]').name.match(/\d+/)[0];
             var f = document.getElementById('rm-' + id);
-            if (f) f.submit();
+            if (!f) return;
+            if (window.UUUI) { UUUI.setBusy(btn); UUUI.navStart(); }
+            f.submit();
         });
     });
 </script>

@@ -13,6 +13,8 @@
 <title>@yield('title', 'Dashboard') · UU Express Admin</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{{ asset('assets/css/uu-ui.css') }}?v={{ @filemtime(public_path('assets/css/uu-ui.css')) }}">
+<script src="{{ asset('assets/js/uu-ui.js') }}?v={{ @filemtime(public_path('assets/js/uu-ui.js')) }}"></script>
 <style>
     :root { --brand:#0f5132; --brand-2:#157347; --sidebar:#0b2e20; --sidebar-ink:#cfe6db; --bg:#f4f6f5; }
     body { background:var(--bg); font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }

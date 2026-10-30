@@ -28,6 +28,8 @@
     .alert-ok { background:#e6f4ea; color:#0f5132; }
     .err { color:#9b1c1c; font-size:.78rem; margin-top:5px; }
 </style>
+<link rel="stylesheet" href="{{ asset('assets/css/uu-ui.css') }}?v={{ @filemtime(public_path('assets/css/uu-ui.css')) }}">
+<script src="{{ asset('assets/js/uu-ui.js') }}?v={{ @filemtime(public_path('assets/js/uu-ui.js')) }}"></script>
 </head>
 <body>
 <div class="auth-card">

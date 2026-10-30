@@ -99,17 +99,21 @@
         card = stripe.elements().create('card', { style: { base: { color: '#1b1b1b', fontSize: '15px' } } });
         card.mount('#checkoutCard');
     }
-    function showErr(m) { errEl.textContent = m; errEl.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = submitBtn.dataset.label; }
+    function showErr(m) {
+        errEl.textContent = m; errEl.style.display = 'block';
+        if (window.UUUI) { UUUI.reset(submitBtn); }
+        else { submitBtn.disabled = false; submitBtn.textContent = submitBtn.dataset.label; }
+    }
 
     form.addEventListener('submit', function (e) {
         if (submitting) return; // allow native submit after payment
         e.preventDefault();
+        if (submitBtn.disabled) return;                 // guard against double-submit
         if (!form.reportValidity()) return;
         if (!stripe) { showErr('Payment is not available right now.'); return; }
         errEl.style.display = 'none';
-        submitBtn.dataset.label = submitBtn.textContent;
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Processing…';
+        if (window.UUUI) { UUUI.setBusy(submitBtn, 'Processing…'); }
+        else { submitBtn.dataset.label = submitBtn.textContent; submitBtn.disabled = true; submitBtn.textContent = 'Processing…'; }
 
         var fd = new FormData();
         fd.append('_token', form.querySelector('input[name="_token"]').value);
@@ -134,6 +138,7 @@
                 if (result.paymentIntent && result.paymentIntent.status === 'succeeded') {
                     piEl.value = result.paymentIntent.id;
                     submitting = true;
+                    if (window.UUUI) { UUUI.navStart(); }
                     form.submit();
                 } else {
                     showErr('Payment was not completed.');
