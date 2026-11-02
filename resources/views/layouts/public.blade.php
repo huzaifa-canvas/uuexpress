@@ -22,6 +22,7 @@
     .booking-pay__card.StripeElement--invalid { border-color:#dc3545; }
 
     /* Pickup date picker (flatpickr) */
+    .booking-time-input { cursor:pointer; padding-right:2.6rem !important; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E") no-repeat right .9rem center / 1.1rem; }
     .booking-date-input { cursor:pointer; padding-right:2.6rem !important; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") no-repeat right .9rem center / 1.1rem; }
     .flatpickr-calendar { z-index:300 !important; border-radius:12px; box-shadow:0 .75rem 2rem rgba(0,0,0,.18); font-family:inherit; }
     .flatpickr-day.selected, .flatpickr-day.selected:hover { background:#FD4E61; border-color:#FD4E61; }
@@ -136,7 +137,7 @@
             <input type="text" name="dropoff_address" placeholder="Drop-off Address" required>
             <div class="form-row">
                 <input type="text" name="pickup_date" id="bookingDate" class="booking-date-input" placeholder="Select Pickup Date" aria-label="Pickup date" autocomplete="off" required>
-                <input type="time" name="pickup_time" aria-label="Pickup time" required>
+                <input type="text" name="pickup_time" id="bookingTime" class="booking-time-input" placeholder="Select Pickup Time" aria-label="Pickup time" autocomplete="off" required>
             </div>
             <textarea name="notes" placeholder="Anything else we should know? (optional)"></textarea>
 
@@ -206,13 +207,40 @@
     var stripe = (window.Stripe && window.UU_STRIPE_KEY) ? Stripe(window.UU_STRIPE_KEY) : null;
     var card = null, cardMounted = false, currentPrice = 0;
 
+    var timeEl = document.getElementById('bookingTime');
+
+    // Pickup time: submits H:i, shows 12-hour format
+    var timePicker = window.flatpickr ? flatpickr(timeEl, {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: 'H:i',
+        altInput: true,
+        altFormat: 'h:i K',
+        minuteIncrement: 15,
+        disableMobile: true
+    }) : null;
+    if (!timePicker) { timeEl.type = 'time'; }
+
+    // When today is picked, block times that have already passed
+    function syncMinTime(selectedDates) {
+        if (!timePicker) return;
+        var d = selectedDates && selectedDates[0];
+        var now = new Date();
+        var isToday = d && d.toDateString() === now.toDateString();
+        timePicker.set('minTime', isToday ? now.getHours() + ':' + now.getMinutes() : null);
+        if (isToday && timeEl.value && timeEl.value < ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2)) {
+            timePicker.clear();
+        }
+    }
+
     // Pickup date: submits Y-m-d, shows a friendly format, past dates disabled
     var datePicker = window.flatpickr ? flatpickr(dateEl, {
         dateFormat: 'Y-m-d',
         altInput: true,
         altFormat: 'F j, Y',
         minDate: 'today',
-        disableMobile: true
+        disableMobile: true,
+        onChange: syncMinTime
     }) : null;
     if (!datePicker) { dateEl.type = 'date'; dateEl.min = new Date().toISOString().slice(0, 10); }
 
@@ -234,7 +262,7 @@
         serviceName = serviceName || 'a Delivery';
         serviceNameEl.textContent = serviceName;
         serviceTypeEl.value = serviceName;
-        if (prefillDate) { datePicker ? datePicker.setDate(prefillDate, false) : (dateEl.value = prefillDate); }
+        if (prefillDate) { datePicker ? datePicker.setDate(prefillDate, true) : (dateEl.value = prefillDate); }
         msgBox.innerHTML = '';
         piEl.value = '';
         currentPrice = priceFor(serviceName);
@@ -307,6 +335,11 @@
         if (!dateEl.value) {
             msgBox.innerHTML = '<div class="form-msg error">Please select a pickup date.</div>';
             if (datePicker) { datePicker.open(); }
+            return;
+        }
+        if (!timeEl.value) {
+            msgBox.innerHTML = '<div class="form-msg error">Please select a pickup time.</div>';
+            if (timePicker) { timePicker.open(); }
             return;
         }
         if (window.UUUI) { UUUI.setBusy(submitBtn, 'Processing…'); }
