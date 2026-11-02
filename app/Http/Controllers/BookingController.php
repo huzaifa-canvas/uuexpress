@@ -64,7 +64,7 @@ class BookingController extends Controller
             'service_type' => 'nullable|string|max:100',
             'pickup_address' => 'required|string|max:255',
             'dropoff_address' => 'required|string|max:255',
-            'pickup_date' => 'required|date_format:Y-m-d',
+            'pickup_date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'pickup_time' => 'required',
             'notes' => 'nullable|string',
         ], [
@@ -75,6 +75,7 @@ class BookingController extends Controller
             'dropoff_address.required' => 'Drop-off address is required.',
             'pickup_date.required' => 'A valid pickup date is required.',
             'pickup_date.date_format' => 'A valid pickup date is required.',
+            'pickup_date.after_or_equal' => 'Pickup date cannot be in the past.',
             'pickup_time.required' => 'A valid pickup time is required.',
         ]);
 

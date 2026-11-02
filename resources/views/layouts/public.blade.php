@@ -20,7 +20,15 @@
     .booking-pay__card { background:#fff; border:1px solid rgba(0,0,0,.2); border-radius:10px; padding:11px 13px; }
     .booking-pay__card.StripeElement--focus { border-color:#157347; box-shadow:0 0 0 3px rgba(21,115,71,.12); }
     .booking-pay__card.StripeElement--invalid { border-color:#dc3545; }
+
+    /* Pickup date picker (flatpickr) */
+    .booking-date-input { cursor:pointer; padding-right:2.6rem !important; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") no-repeat right .9rem center / 1.1rem; }
+    .flatpickr-calendar { z-index:300 !important; border-radius:12px; box-shadow:0 .75rem 2rem rgba(0,0,0,.18); font-family:inherit; }
+    .flatpickr-day.selected, .flatpickr-day.selected:hover { background:#FD4E61; border-color:#FD4E61; }
+    .flatpickr-day.today { border-color:#FD4E61; }
+    .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover { color:rgba(57,57,57,.25); }
 </style>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
 </head>
 <body>
 <header class="site-header">
@@ -127,7 +135,7 @@
             <input type="text" name="pickup_address" placeholder="Pickup Address" required>
             <input type="text" name="dropoff_address" placeholder="Drop-off Address" required>
             <div class="form-row">
-                <input type="date" name="pickup_date" id="bookingDate" aria-label="Pickup date" required>
+                <input type="text" name="pickup_date" id="bookingDate" class="booking-date-input" placeholder="Select Pickup Date" aria-label="Pickup date" autocomplete="off" required>
                 <input type="time" name="pickup_time" aria-label="Pickup time" required>
             </div>
             <textarea name="notes" placeholder="Anything else we should know? (optional)"></textarea>
@@ -171,6 +179,7 @@
 })();
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
     window.UU_STRIPE_KEY = @json(config('services.stripe.key'));
@@ -197,6 +206,16 @@
     var stripe = (window.Stripe && window.UU_STRIPE_KEY) ? Stripe(window.UU_STRIPE_KEY) : null;
     var card = null, cardMounted = false, currentPrice = 0;
 
+    // Pickup date: submits Y-m-d, shows a friendly format, past dates disabled
+    var datePicker = window.flatpickr ? flatpickr(dateEl, {
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'F j, Y',
+        minDate: 'today',
+        disableMobile: true
+    }) : null;
+    if (!datePicker) { dateEl.type = 'date'; dateEl.min = new Date().toISOString().slice(0, 10); }
+
     function mountCard() {
         if (!stripe || cardMounted) return;
         card = stripe.elements().create('card', {
@@ -215,7 +234,7 @@
         serviceName = serviceName || 'a Delivery';
         serviceNameEl.textContent = serviceName;
         serviceTypeEl.value = serviceName;
-        if (prefillDate) { dateEl.value = prefillDate; }
+        if (prefillDate) { datePicker ? datePicker.setDate(prefillDate, false) : (dateEl.value = prefillDate); }
         msgBox.innerHTML = '';
         piEl.value = '';
         currentPrice = priceFor(serviceName);
@@ -284,6 +303,12 @@
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         if (submitBtn.disabled) return;              // guard against double-submit
+        // flatpickr's visible input is readonly, so the browser skips its "required" check
+        if (!dateEl.value) {
+            msgBox.innerHTML = '<div class="form-msg error">Please select a pickup date.</div>';
+            if (datePicker) { datePicker.open(); }
+            return;
+        }
         if (window.UUUI) { UUUI.setBusy(submitBtn, 'Processing…'); }
         else { submitBtn.disabled = true; submitBtn.textContent = 'Processing…'; }
 
