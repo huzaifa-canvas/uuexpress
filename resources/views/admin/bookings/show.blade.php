@@ -24,6 +24,7 @@
                 <dt class="col-sm-4 text-muted">Phone</dt><dd class="col-sm-8">{{ $booking->phone ?: '—' }}</dd>
                 <dt class="col-sm-4 text-muted">Pickup Address</dt><dd class="col-sm-8">{{ $booking->pickup_address ?: '—' }}</dd>
                 <dt class="col-sm-4 text-muted">Drop-off Address</dt><dd class="col-sm-8">{{ $booking->dropoff_address ?: '—' }}</dd>
+                <dt class="col-sm-4 text-muted">Items</dt><dd class="col-sm-8">{{ $booking->boxes }} Boxes · {{ $booking->bags }} Bags · {{ $booking->envelopes }} Envelopes</dd>
                 <dt class="col-sm-4 text-muted">Pickup Date</dt><dd class="col-sm-8">{{ optional($booking->pickup_date)->format('M j, Y') ?: '—' }}</dd>
                 <dt class="col-sm-4 text-muted">Pickup Time</dt><dd class="col-sm-8">{{ $booking->pickup_time ?: '—' }}</dd>
                 <dt class="col-sm-4 text-muted">Notes</dt><dd class="col-sm-8">{{ $booking->notes ?: '—' }}</dd>

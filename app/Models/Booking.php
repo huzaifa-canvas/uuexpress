@@ -9,6 +9,7 @@ class Booking extends Model
     protected $fillable = [
         'name', 'email', 'phone', 'service_type',
         'pickup_address', 'dropoff_address',
+        'boxes', 'bags', 'envelopes',
         'pickup_date', 'pickup_time', 'notes', 'status',
         'amount', 'payment_status', 'payment_intent_id',
     ];

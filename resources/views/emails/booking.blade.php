@@ -10,6 +10,9 @@
     <strong>Drop-off Address:</strong> {{ $booking->dropoff_address }}
 </p>
 <p>
+    <strong>Items:</strong> {{ $booking->boxes }} Boxes, {{ $booking->bags }} Bags, {{ $booking->envelopes }} Envelopes
+</p>
+<p>
     <strong>Pickup Date:</strong> {{ optional($booking->pickup_date)->format('Y-m-d') }}<br>
     <strong>Pickup Time:</strong> {{ $booking->pickup_time }}
 </p>

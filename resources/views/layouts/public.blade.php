@@ -9,7 +9,10 @@
 <script src="{{ asset('assets/js/uu-ui.js') }}?v={{ @filemtime(public_path('assets/js/uu-ui.js')) }}"></script>
 <style>
     /* Keep the booking popup compact so it fits without scrolling */
-    .booking-modal__panel { max-height: 94vh; padding: 1.6rem 1.75rem; }
+    .booking-modal__panel { max-height: 94vh; padding: 1.6rem 1.75rem; scrollbar-gutter: stable both-edges; scrollbar-width: thin; scrollbar-color: rgba(0,0,0,.25) transparent; }
+    .booking-modal__panel::-webkit-scrollbar { width: 6px; }
+    .booking-modal__panel::-webkit-scrollbar-track { background: transparent; margin: 1.25rem 0; }
+    .booking-modal__panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,.25); border-radius: 6px; }
     .booking-modal__panel form { gap: 0.7rem; }
     .booking-modal__panel textarea { min-height: 4rem; }
     .booking-modal__eyebrow { margin-bottom: 0.25rem; }
@@ -17,6 +20,24 @@
     .booking-pay { margin:6px 0 2px; }
     .booking-pay__price { font-weight:700; font-size:1.05rem; margin-bottom:7px; }
     .booking-pay__label { display:block; font-size:.76rem; font-weight:600; letter-spacing:.02em; margin-bottom:5px; opacity:.85; }
+    .booking-items__head { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+    .booking-items__title { font-family:'Playfair Display', serif; font-weight:700; text-transform:uppercase; font-size:1.05rem; letter-spacing:.01em; }
+    .booking-items__badge { background:#e7f6ed; color:#157347; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; padding:5px 11px; border-radius:6px; }
+    .booking-items__hint { font-size:.82rem; color:#6b6b6b; margin:-4px 0 10px; }
+    .booking-items__box { background:#f6f7f4; border:1px solid #ecece8; border-radius:16px; padding:6px 14px; }
+    .booking-items__row { display:flex; align-items:center; gap:12px; padding:9px 0; }
+    .booking-items__icon { width:22px; height:22px; color:#157347; flex:0 0 auto; }
+    .booking-items__label { flex:1; font-size:1rem; }
+    .booking-items__stepper { display:flex; align-items:center; gap:6px; }
+    .booking-items__btn { width:36px; height:36px; border:0; border-radius:8px; background:#fff; color:#157347; font-size:1.25rem; line-height:1; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+    .booking-items__btn[data-item-step="-1"] { color:#222; }
+    .booking-items__btn:hover { background:#e7f6ed; }
+    .booking-items__btn:disabled { opacity:.4; cursor:default; background:#fff; }
+    .booking-items__count { min-width:28px; text-align:center; font-size:1.05rem; }
+    .booking-agree { display:flex; flex-direction:column; gap:8px; margin:4px 0 6px; }
+    .booking-agree label { display:flex; align-items:flex-start; gap:9px; font-size:.86rem; line-height:1.4; cursor:pointer; }
+    .booking-modal__panel .booking-agree input[type="checkbox"] { width:17px; height:17px; min-width:17px; margin:2px 0 0; padding:0; flex:0 0 auto; accent-color:#157347; cursor:pointer; }
+    .booking-agree a { color:#157347; text-decoration:underline; }
     .booking-pay__card { background:#fff; border:1px solid rgba(0,0,0,.2); border-radius:10px; padding:11px 13px; }
     .booking-pay__card.StripeElement--focus { border-color:#157347; box-shadow:0 0 0 3px rgba(21,115,71,.12); }
     .booking-pay__card.StripeElement--invalid { border-color:#dc3545; }
@@ -28,6 +49,12 @@
     .flatpickr-day.selected, .flatpickr-day.selected:hover { background:#FD4E61; border-color:#FD4E61; }
     .flatpickr-day.today { border-color:#FD4E61; }
     .flatpickr-day.flatpickr-disabled, .flatpickr-day.flatpickr-disabled:hover { color:rgba(57,57,57,.25); }
+
+    /* "Select a service" dropdown inside the booking popup */
+    .booking-service-select { width:100%; font-family:inherit; font-size:1.0625rem; padding:0.9375rem 2.6rem 0.9375rem 1.125rem; border:0.0625rem solid #d9d9d9; border-radius:0.375rem; color:var(--ink); cursor:pointer; -webkit-appearance:none; appearance:none; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23222' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right .9rem center / 1.1rem; }
+    .booking-service-select:invalid { color:#9a9a9a; }
+    .booking-service-select option { color:var(--ink); }
+    .booking-service-select:focus { outline:none; border-color:#157347; box-shadow:0 0 0 3px rgba(21,115,71,.12); }
 </style>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
 </head>
@@ -117,6 +144,9 @@
     </div>
 </footer>
 
+@php
+    $pickerServices = \App\Models\Service::where('is_active', true)->orderBy('sort_order')->get();
+@endphp
 <div class="booking-modal" id="bookingModal" aria-hidden="true">
     <div class="booking-modal__overlay" data-booking-close></div>
     <div class="booking-modal__panel" role="dialog" aria-modal="true" aria-labelledby="bookingModalTitle">
@@ -135,16 +165,72 @@
             <input type="email" name="email" placeholder="Email" required>
             <input type="text" name="pickup_address" placeholder="Pickup Address" required>
             <input type="text" name="dropoff_address" placeholder="Drop-off Address" required>
+            @if($pickerServices->count())
+            <select id="bookingServiceSelect" class="booking-service-select" aria-label="Service" required>
+                <option value="" disabled selected>Select a Service</option>
+                @php
+                    $serviceMiles = [
+                        'Local Delivery' => '0 – 5 miles',
+                        'First Class'    => '5 – 30 miles',
+                        'Long Distance'  => '30+ miles',
+                        'Pet Delivery'   => '0 – 30 miles',
+                    ];
+                @endphp
+                @foreach($pickerServices as $s)
+                <option value="{{ $s->name }}">{{ $s->name }}@isset($serviceMiles[$s->name]) ({{ $serviceMiles[$s->name] }})@endisset</option>
+                @endforeach
+            </select>
+            @endif
             <div class="form-row">
                 <input type="text" name="pickup_date" id="bookingDate" class="booking-date-input" placeholder="Select Pickup Date" aria-label="Pickup date" autocomplete="off" required>
                 <input type="text" name="pickup_time" id="bookingTime" class="booking-time-input" placeholder="Select Pickup Time" aria-label="Pickup time" autocomplete="off" required>
             </div>
             <textarea name="notes" placeholder="Anything else we should know? (optional)"></textarea>
 
+            <div class="booking-items">
+                <div class="booking-items__head">
+                    <span class="booking-items__title">How Many Items</span>
+                    <span class="booking-items__badge" id="bookingItemsTotal">0 Items</span>
+                </div>
+                <p class="booking-items__hint">First {{ \App\Http\Controllers\BookingController::INCLUDED_ITEMS }} packages included &middot; ${{ number_format(\App\Http\Controllers\BookingController::EXTRA_ITEM_PRICE, 2) }} each additional package</p>
+                <div class="booking-items__box">
+                    @foreach([
+                        'boxes' => ['Boxes', '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'],
+                        'bags' => ['Bags', '<path d="M6 7h12l1 13H5z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>'],
+                        'envelopes' => ['Envelopes', '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>'],
+                    ] as $field => [$label, $icon])
+                    <div class="booking-items__row">
+                        <svg class="booking-items__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{!! $icon !!}</svg>
+                        <span class="booking-items__label">{{ $label }}</span>
+                        <div class="booking-items__stepper">
+                            <button type="button" class="booking-items__btn" data-item-step="-1" aria-label="Remove one {{ strtolower($label) }}">&minus;</button>
+                            <span class="booking-items__count" aria-live="polite">0</span>
+                            <button type="button" class="booking-items__btn" data-item-step="1" aria-label="Add one {{ strtolower($label) }}">+</button>
+                            <input type="hidden" name="{{ $field }}" value="0" class="booking-items__input">
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="booking-agree">
+                <label>
+                    <input type="checkbox" name="agree_weight" id="bookingAgreeWeight" value="1" required>
+                    <span>I confirm my package weighs less than 35 lbs.</span>
+                </label>
+            </div>
+
             <div class="booking-pay" id="bookingPayWrap" hidden>
                 <div class="booking-pay__price" id="bookingPrice"></div>
                 <label class="booking-pay__label">Card details</label>
                 <div id="bookingCard" class="booking-pay__card"></div>
+            </div>
+
+            <div class="booking-agree">
+                <label>
+                    <input type="checkbox" name="agree_terms" id="bookingAgreeTerms" value="1" required>
+                    <span>I agree to the <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms &amp; Conditions</a> and <a href="{{ route('privacy') }}" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+                </label>
             </div>
 
             <button type="submit" class="btn btn-outline" id="bookingSubmitBtn">Send Booking Request</button>
@@ -187,6 +273,8 @@
     window.UU_SERVICE_PRICES = @json($servicePrices ?? []);
     window.UU_THANKYOU_URL = @json(route('thank-you'));
     window.UU_PI_URL = @json(route('booking.payment-intent'));
+    window.UU_INCLUDED_ITEMS = {{ \App\Http\Controllers\BookingController::INCLUDED_ITEMS }};
+    window.UU_EXTRA_ITEM_PRICE = {{ \App\Http\Controllers\BookingController::EXTRA_ITEM_PRICE }};
 </script>
 <script>
 (function () {
@@ -256,25 +344,99 @@
         var p = prices[name];
         return p ? parseFloat(p) : 0;
     }
-    function defaultLabel() { return currentPrice > 0 ? 'Pay & Book' : 'Send Booking Request'; }
+    // service price covers the first INCLUDED items; each extra package adds EXTRA_PRICE
+    var INCLUDED = window.UU_INCLUDED_ITEMS || 3;
+    var EXTRA_PRICE = parseFloat(window.UU_EXTRA_ITEM_PRICE) || 0;
+    function extraItems() { return Math.max(0, itemsTotal() - INCLUDED); }
+    function bookingTotal() { return currentPrice + extraItems() * EXTRA_PRICE; }
+    function renderTotal() {
+        if (!(currentPrice > 0 && stripe)) return;   // other states set their own text
+        var extra = extraItems();
+        priceEl.textContent = 'Total: $' + bookingTotal().toFixed(2) +
+            (extra > 0 ? '  (incl. ' + extra + ' extra × $' + EXTRA_PRICE.toFixed(2) + ')' : '');
+    }
+    function defaultLabel() { return (currentPrice > 0 || !payWrap.hidden) ? 'Pay & Book' : 'Send Booking Request'; }
 
-    function openModal(serviceName, prefillDate) {
-        serviceName = serviceName || 'a Delivery';
-        serviceNameEl.textContent = serviceName;
+    // "Select a Service" dropdown - every Book Now opens the popup with it
+    var serviceSelect = document.getElementById('bookingServiceSelect');
+    var pickerMode = !!serviceSelect;
+    function inList(name) {
+        return !!name && !!serviceSelect && Array.prototype.some.call(serviceSelect.options, function (o) {
+            return o.value === name;
+        });
+    }
+
+    // set the chosen service + its price / card field
+    function applyService(serviceName) {
         serviceTypeEl.value = serviceName;
-        if (prefillDate) { datePicker ? datePicker.setDate(prefillDate, true) : (dateEl.value = prefillDate); }
-        msgBox.innerHTML = '';
-        piEl.value = '';
-        currentPrice = priceFor(serviceName);
+        currentPrice = serviceName ? priceFor(serviceName) : 0;
         if (currentPrice > 0 && stripe) {
             mountCard();
-            priceEl.textContent = 'Total: $' + currentPrice.toFixed(2);
+            renderTotal();
+            payWrap.hidden = false;
+        } else if (!serviceName && pickerMode && stripe) {
+            // no service chosen yet: still show the card field, total appears once a service is picked
+            mountCard();
+            priceEl.textContent = 'Total: select a service';
             payWrap.hidden = false;
         } else {
             payWrap.hidden = true;
         }
         submitBtn.disabled = false;
         submitBtn.textContent = defaultLabel();
+    }
+    if (serviceSelect) {
+        serviceSelect.addEventListener('change', function () {
+            var name = serviceSelect.value;
+            serviceNameEl.textContent = name || 'a Delivery';
+            applyService(name);
+            msgBox.innerHTML = '';
+        });
+    }
+
+    // "How Many Items" steppers
+    var itemRows = form.querySelectorAll('.booking-items__row');
+    var itemsTotalEl = document.getElementById('bookingItemsTotal');
+    function itemsTotal() {
+        var sum = 0;
+        itemRows.forEach(function (row) { sum += parseInt(row.querySelector('.booking-items__input').value, 10) || 0; });
+        return sum;
+    }
+    function setItemCount(row, n) {
+        n = Math.max(0, Math.min(99, n));
+        row.querySelector('.booking-items__input').value = n;
+        row.querySelector('.booking-items__count').textContent = n;
+        row.querySelector('[data-item-step="-1"]').disabled = n === 0;
+        row.querySelector('[data-item-step="1"]').disabled = n === 99;
+        var t = itemsTotal();
+        itemsTotalEl.textContent = t + (t === 1 ? ' Item' : ' Items');
+        renderTotal();
+    }
+    itemRows.forEach(function (row) {
+        setItemCount(row, 0);
+        row.querySelectorAll('[data-item-step]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var cur = parseInt(row.querySelector('.booking-items__input').value, 10) || 0;
+                setItemCount(row, cur + parseInt(b.getAttribute('data-item-step'), 10));
+                msgBox.innerHTML = '';
+            });
+        });
+    });
+
+    function openModal(serviceName, prefillDate) {
+        if (pickerMode) {
+            // pre-select the clicked card's service; otherwise leave "Select a Service"
+            if (!inList(serviceName)) { serviceName = ''; }
+            serviceSelect.value = serviceName;
+            serviceNameEl.textContent = serviceName || 'a Delivery';
+        } else {
+            serviceName = serviceName || 'a Delivery';
+            serviceNameEl.textContent = serviceName;
+        }
+        if (prefillDate) { datePicker ? datePicker.setDate(prefillDate, true) : (dateEl.value = prefillDate); }
+        msgBox.innerHTML = '';
+        piEl.value = '';
+        applyService(serviceName);
         form.hidden = false;
         lastFocused = document.activeElement;
         modal.classList.add('is-open');
@@ -297,6 +459,13 @@
             var wrap = trigger.closest('.date-cta') || trigger.closest('form');
             var prefillDate = wrap ? wrap.querySelector('input[type="date"]') : null;
             openModal(serviceName, prefillDate ? prefillDate.value : '');
+        });
+    });
+    // home hero "Book Now": same popup, but the customer picks the service inside it
+    document.querySelectorAll('[data-service-picker]').forEach(function (trigger) {
+        trigger.addEventListener('click', function (e) {
+            e.preventDefault();
+            openModal('', '');
         });
     });
     modal.querySelectorAll('[data-booking-close]').forEach(function (el) {
@@ -331,6 +500,11 @@
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         if (submitBtn.disabled) return;              // guard against double-submit
+        if (pickerMode && !serviceTypeEl.value) {
+            msgBox.innerHTML = '<div class="form-msg error">Please choose a service.</div>';
+            serviceSelect.focus();
+            return;
+        }
         // flatpickr's visible input is readonly, so the browser skips its "required" check
         if (!dateEl.value) {
             msgBox.innerHTML = '<div class="form-msg error">Please select a pickup date.</div>';
@@ -342,6 +516,18 @@
             if (timePicker) { timePicker.open(); }
             return;
         }
+        if (itemsTotal() < 1) {
+            msgBox.innerHTML = '<div class="form-msg error">Please add at least one item.</div>';
+            form.querySelector('.booking-items__btn[data-item-step="1"]').focus();
+            return;
+        }
+        var agreeTerms = document.getElementById('bookingAgreeTerms');
+        var agreeWeight = document.getElementById('bookingAgreeWeight');
+        if (!agreeTerms.checked || !agreeWeight.checked) {
+            msgBox.innerHTML = '<div class="form-msg error">Please accept the Terms &amp; Privacy Policy and confirm your package is under 35 lbs.</div>';
+            (agreeTerms.checked ? agreeWeight : agreeTerms).focus();
+            return;
+        }
         if (window.UUUI) { UUUI.setBusy(submitBtn, 'Processing…'); }
         else { submitBtn.disabled = true; submitBtn.textContent = 'Processing…'; }
 
@@ -349,6 +535,7 @@
 
         var fd = new FormData();
         fd.append('service_type', serviceTypeEl.value);
+        form.querySelectorAll('.booking-items__input').forEach(function (inp) { fd.append(inp.name, inp.value); });
         fd.append('_token', token());
         fetch(window.UU_PI_URL, {
             method: 'POST',

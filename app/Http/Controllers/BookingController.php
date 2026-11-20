@@ -14,13 +14,32 @@ use Stripe\StripeClient;
 
 class BookingController extends Controller
 {
+    /** Packages covered by the service's base price (boxes, bags and envelopes all count the same). */
+    public const INCLUDED_ITEMS = 3;
+
+    /** Charge for each package beyond INCLUDED_ITEMS. */
+    public const EXTRA_ITEM_PRICE = 2.99;
+
+    /** Base service price + EXTRA_ITEM_PRICE for every package over INCLUDED_ITEMS. */
+    public static function amountFor(Service $service, int $items): float
+    {
+        $extra = max(0, $items - self::INCLUDED_ITEMS);
+
+        return round((float) $service->price + $extra * self::EXTRA_ITEM_PRICE, 2);
+    }
+
     /**
-     * Create a Stripe PaymentIntent for the chosen service's price.
+     * Create a Stripe PaymentIntent for the chosen service's price plus extra packages.
      * The amount is derived server-side from the service record — never trusted from the client.
      */
     public function paymentIntent(Request $request): JsonResponse
     {
-        $request->validate(['service_type' => 'required|string']);
+        $request->validate([
+            'service_type' => 'required|string',
+            'boxes' => 'required|integer|min:0|max:99',
+            'bags' => 'required|integer|min:0|max:99',
+            'envelopes' => 'required|integer|min:0|max:99',
+        ]);
 
         $service = Service::where('name', $request->service_type)->first();
 
@@ -31,15 +50,21 @@ class BookingController extends Controller
             ]);
         }
 
+        $items = (int) $request->boxes + (int) $request->bags + (int) $request->envelopes;
+        if ($items < 1) {
+            return response()->json(['error' => 'Please add at least one item.'], 422);
+        }
+        $amount = self::amountFor($service, $items);
+
         try {
             $stripe = new StripeClient(config('services.stripe.secret'));
             $intent = $stripe->paymentIntents->create([
-                'amount' => $this->cents($service->price),
+                'amount' => $this->cents($amount),
                 'currency' => config('services.stripe.currency', 'usd'),
                 // Dynamic payment methods, but inline only (no redirect) so the
                 // card element + confirmCardPayment flow keeps working.
                 'automatic_payment_methods' => ['enabled' => true, 'allow_redirects' => 'never'],
-                'metadata' => ['service' => $service->name],
+                'metadata' => ['service' => $service->name, 'items' => $items],
             ]);
         } catch (\Throwable $e) {
             Log::error('Stripe PaymentIntent create failed: ' . $e->getMessage());
@@ -50,8 +75,8 @@ class BookingController extends Controller
         return response()->json([
             'payable' => true,
             'clientSecret' => $intent->client_secret,
-            'amount' => (float) $service->price,
-            'amount_display' => '$' . number_format($service->price, 2),
+            'amount' => $amount,
+            'amount_display' => '$' . number_format($amount, 2),
         ]);
     }
 
@@ -67,7 +92,14 @@ class BookingController extends Controller
             'pickup_date' => 'required|date_format:Y-m-d|after_or_equal:today',
             'pickup_time' => 'required',
             'notes' => 'nullable|string',
+            'boxes' => 'required|integer|min:0|max:99',
+            'bags' => 'required|integer|min:0|max:99',
+            'envelopes' => 'required|integer|min:0|max:99',
+            'agree_terms' => 'accepted',
+            'agree_weight' => 'accepted',
         ], [
+            'agree_terms.accepted' => 'Please accept the Terms & Conditions and Privacy Policy.',
+            'agree_weight.accepted' => 'Please confirm your package weighs less than 35 lbs.',
             'name.required' => 'Name is required.',
             'email.required' => 'A valid email is required.',
             'email.email' => 'A valid email is required.',
@@ -88,6 +120,11 @@ class BookingController extends Controller
 
         $data = $validator->validated();
 
+        $items = $data['boxes'] + $data['bags'] + $data['envelopes'];
+        if ($items < 1) {
+            return response()->json(['status' => 'error', 'message' => 'Please add at least one item.']);
+        }
+
         // Verify payment when the chosen service has a price.
         $service = Service::where('name', $data['service_type'] ?? '')->first();
         $data['amount'] = null;
@@ -95,11 +132,12 @@ class BookingController extends Controller
         $data['payment_intent_id'] = null;
 
         if ($service && (float) $service->price > 0) {
-            $paymentError = $this->verifyPayment($request->input('payment_intent_id'), $service);
+            $amount = self::amountFor($service, $items);
+            $paymentError = $this->verifyPayment($request->input('payment_intent_id'), $amount);
             if ($paymentError) {
                 return response()->json(['status' => 'error', 'message' => $paymentError]);
             }
-            $data['amount'] = (float) $service->price;
+            $data['amount'] = $amount;
             $data['payment_status'] = 'paid';
             $data['payment_intent_id'] = $request->input('payment_intent_id');
         }
@@ -119,7 +157,7 @@ class BookingController extends Controller
     }
 
     /** Returns an error string if the payment is invalid, or null when it checks out. */
-    private function verifyPayment(?string $paymentIntentId, Service $service): ?string
+    private function verifyPayment(?string $paymentIntentId, float $amount): ?string
     {
         if (! $paymentIntentId) {
             return 'Payment is required to complete this booking.';
@@ -138,8 +176,8 @@ class BookingController extends Controller
             return 'Your payment was not completed. Please try again.';
         }
 
-        if ((int) $intent->amount !== $this->cents($service->price)) {
-            return 'Payment amount did not match the service price.';
+        if ((int) $intent->amount !== $this->cents($amount)) {
+            return 'Payment amount did not match the booking total.';
         }
 
         return null;

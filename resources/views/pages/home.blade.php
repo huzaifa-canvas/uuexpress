@@ -15,7 +15,7 @@
     <div class="hero__content">
         <div class="hero__eyebrow">United Universe Express LLC.</div>
         <h1 class="display">Albany Courier Services<br>Built Around You</h1>
-        <a href="{{ route('contact') }}" class="btn btn-white">Book Now</a>
+        <button type="button" class="btn btn-white" data-service-picker>Book Now</button>
     </div>
 </section>
 
@@ -154,7 +154,7 @@
                 <div class="eyebrow">Need It Now?</div>
                 <h2 class="display">One Booking Gets<br>It Moving</h2>
                 <p>Order online today and leave the driving to us.</p>
-                <a href="{{ route('contact') }}" class="btn btn-outline">Book Now</a>
+                <button type="button" class="btn btn-outline" data-service-picker>Book Now</button>
             </div>
             <div class="ready__front-wrap">
                 <img class="ready__front" src="{{ asset('assets/img/doorstep-1.png') }}" alt="Doorstep delivery">
